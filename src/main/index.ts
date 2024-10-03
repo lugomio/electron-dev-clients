@@ -1,29 +1,64 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+} from 'electron'
 import path, { join } from 'node:path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import {
+  electronApp,
+  optimizer,
+  is,
+} from '@electron-toolkit/utils'
+import { registerRoute } from '../renderer/src/lib/electron-router-dom'
+import { createTray } from './tray'
+import './store'
 
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
+    width: 1100,
     height: 670,
     show: true,
     autoHideMenuBar: true,
+    backgroundColor: '#030712',
     ...(process.platform === 'linux'
       ? {
-          icon: path.join(__dirname, '../../build/icon.png')
+          icon: path.join(
+            __dirname,
+            '../../build/icon.png'
+          ),
         }
       : process.platform === 'win32' && {
-          icon: path.join(__dirname, 'resources', 'icon.png')
+          icon: path.join(
+            __dirname,
+            'resources',
+            'icon.png'
+          ),
         }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
-    }
+      sandbox: false,
+    },
+  })
+
+  createTray(mainWindow)
+
+  registerRoute({
+    id: 'main',
+    browserWindow: mainWindow,
+    htmlFile: path.join(
+      __dirname,
+      '../renderer/index.html'
+    ),
   })
 
   if (process.platform === 'darwin') {
-    const iconPath = path.resolve(__dirname, 'resources', 'icon.png')
+    const iconPath = path.resolve(
+      __dirname,
+      'resources',
+      'icon.png'
+    )
     app.dock.setIcon(iconPath)
   }
 
@@ -31,18 +66,18 @@ function createWindow(): void {
     mainWindow.show()
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  mainWindow.webContents.setWindowOpenHandler(details => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  // if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  //   // const devServerUrl = createURLRoute(process.env['ELECTRON_RENDERER_URL'], 'main')
+  //   // mainWindow.loadURL(devServerUrl)
+  //   mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  // } else {
+  //   mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  // }
 }
 
 // This method will be called when Electron has finished
@@ -64,10 +99,11 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  app.on('activate', function () {
+  app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0)
+      createWindow()
   })
 })
 
